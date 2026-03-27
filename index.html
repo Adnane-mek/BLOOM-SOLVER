@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloom Solver Pro | الموسوعة الشاملة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Tajawal:wght@400;700&display=swap');
+        body { font-family: 'Tajawal', sans-serif; background: #f8fafc; color: #1e293b; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid #e2e8f0; }
+        .code-font { font-family: 'Fira Code', monospace; direction: ltr; text-align: left; }
+        .var-badge { background: #f1f5f9; color: #2563eb; font-weight: bold; min-width: 45px; text-align: center; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .syntax-box { background: #1e293b; color: #38bdf8; padding: 12px; border-radius: 12px; font-size: 0.85rem; border-left: 4px solid #3b82f6; overflow-x: auto; }
+        .step-card { border-right: 4px solid #3b82f6; background: white; transition: all 0.2s; }
+        select { cursor: pointer; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-10">
+            <div class="text-right">
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight">BLOOM <span class="text-blue-600">SOLVER</span></h1>
+                <p class="text-slate-500 text-sm font-medium italic">الموسوعة الشاملة - جميع معادلات الميكانيك المدمجة</p>
+            </div>
+            <div class="bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs font-bold">Ultimate v4.0</div>
+        </header>
+
+        <div id="mainGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+        <div id="solverContainer" class="hidden mt-6">
+            <button onclick="closeSolver()" class="mb-6 flex items-center gap-2 text-blue-600 font-bold hover:gap-3 transition-all">
+                <i data-lucide="arrow-right" size="18"></i> العودة للقائمة الرئيسية
+            </button>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="glass-panel p-6 rounded-[2.5rem] shadow-sm">
+                        <h2 id="catTitle" class="text-xl font-bold mb-4 text-slate-800"></h2>
+                        <select id="eqSelect" class="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 outline-none font-bold mb-6 transition-all text-sm"></select>
+                        <div id="inputArea" class="space-y-3"></div>
+                        <button id="calcBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl mt-8 shadow-lg flex items-center justify-center gap-2 transition-all">
+                            <i data-lucide="zap" size="20"></i> استخراج الحل الرياضي والبرمجي
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7">
+                    <div id="resultPanel" class="hidden space-y-4">
+                        <div class="glass-panel p-8 rounded-[2.5rem] text-center border-b-4 border-blue-600">
+                            <div id="mathDisplay" class="text-3xl py-4 overflow-x-auto"></div>
+                            <div class="mt-6 pt-6 border-t border-slate-100">
+                                <p class="text-[10px] font-black text-slate-400 uppercase mb-3 text-right">المعادلة برمجياً (Syntax)</p>
+                                <div id="syntaxDisplay" class="syntax-box code-font"></div>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-6 rounded-[2.5rem]">
+                            <h3 class="text-xs font-black text-slate-400 uppercase mb-4 flex items-center gap-2">
+                                <i data-lucide="list-checks" size="14"></i> المنهجية المتبعة للحل
+                            </h3>
+                            <div id="stepsList" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // المكتبة الشاملة (تحتوي على كل ما تم برمجته دون أي حذف)
+        const MechanicsDB = {
+            planets: {
+                name: "الأقمار والكواكب", icon: "orbit",
+                equations: {
+                    v_orbit: {
+                        name: "السرعة المدارية (v)",
+                        latex: "v = \\sqrt{\\frac{G \\cdot M}{R+h}}",
+                        syntax: "Math.sqrt((G * M) / (R + h))",
+                        vars: { v: "السرعة", G: "6.67e-11", M: "كتلة المركز", R: "نصف القطر", h: "الارتفاع" },
+                        solve: (t, v) => ({ res: Math.sqrt((v.G * v.M)/(v.R + v.h)), steps: ["نحسب البعد عن المركز $r = R + h$", "نعوض في قانون السرعة المدارية $v = \\sqrt{GM/r}$."] })
+                    },
+                    period_t: {
+                        name: "الدور المداري (T)",
+                        latex: "T = \\frac{2\\pi r}{v}",
+                        syntax: "(2 * Math.PI * r) / v",
+                        vars: { T: "الدور s", r: "نصف القطر m", v: "السرعة m/s" },
+                        solve: (t, v) => ({ res: (2 * Math.PI * v.r)/v.v, steps: ["الدور هو المسافة المقطوعة خلال دورة مقسومة على السرعة: $T = 2\\pi r / v$"] })
+                    },
+                    kepler_3: {
+                        name: "قانون كبلر الثالث (T²/r³)",
+                        latex: "\\frac{T^2}{r^3} = \\frac{4\\pi^2}{G \\cdot M}",
+                        syntax: "(4 * Math.PI**2) / (G * M)",
+                        vars: { T: "الدور T", r: "نصف القطر r", M: "كتلة المركز M", G: "6.67e-11" },
+                        solve: (t, v) => ({ res: Math.sqrt((4 * Math.PI**2 * v.r**3)/(v.G * v.M)), steps: ["نعزل الدور: $T^2 = (4\\pi^2 r^3) / GM$", "نحسب الجذر التربيعي."] })
+                    }
+                }
+            },
+            falling: {
+                name: "السقوط الشاقولي", icon: "arrow-down",
+                equations: {
+                    a0_with_arch: {
+                        name: "التسارع الابتدائي (a₀)",
+                        latex: "a_0 = g(1 - \\frac{\\rho_{air} V}{m})",
+                        syntax: "g * (1 - (rho * V) / m)",
+                        vars: { a0: "التسارع a0", g: "9.8", rho: "كثافة الهواء", V: "حجم الجسم", m: "الكتلة" },
+                        solve: (t, v) => ({ res: v.g * (1 - (v.rho * v.V)/v.m), steps: ["تطبيق قانون نيوتن الثاني عند $t=0$ وإسقاط القوى (الثقل ودافعة أرخميدس)."] })
+                    },
+                    vlim_small: {
+                        name: "السرعة الحدية (سرعات صغيرة f=kv)",
+                        latex: "v_{lim} = \\frac{m \\cdot g}{k} (1 - \\frac{\\rho_a \\cdot V}{m})",
+                        syntax: "(m * g / k) * (1 - (rho_a * V) / m)",
+                        vars: { vlim: "v_lim", m: "الكتلة", g: "9.8", k: "معامل k", rho_a: "كثافة الهواء", V: "الحجم" },
+                        solve: (t, v) => ({ res: (v.m * v.g / v.k) * (1 - (v.rho_a * v.V)/v.m), steps: ["عند النظام الدائم $a=0$.", "مجموع القوى $P - \\Pi - f = 0$ حيث $f = kv_{lim}$."] })
+                    },
+                    vlim_v2: {
+                        name: "السرعة الحدية (سرعات كبيرة f=kv²)",
+                        latex: "v_{lim} = \\sqrt{\\frac{mg - \\Pi}{k}}",
+                        syntax: "Math.sqrt((m * g - Pi) / k)",
+                        vars: { vlim: "v_lim", m: "الكتلة", g: "9.8", Pi: "أرخميدس", k: "معامل k" },
+                        solve: (t, v) => ({ res: Math.sqrt((v.m * v.g - v.Pi)/v.k), steps: ["عند النظام الدائم $a=0$.", "بما أن الاحتكاك $f=kv^2$ فإن $v_{lim} = \\sqrt{(P-\\Pi)/k}$."] })
+                    },
+                    tau: {
+                        name: "ثابت الزمن (τ)",
+                        latex: "\\tau = \\frac{m}{k}",
+                        syntax: "m / k",
+                        vars: { tau: "ثابت الزمن", m: "الكتلة kg", k: "معامل k" },
+                        solve: (t, v) => ({ res: v.m / v.k, steps: ["ثابت الزمن يعبر عن زمن بلوغ 63% من السرعة الحدية في غياب أرخميدس."] })
+                    }
+                }
+            },
+            projectiles: {
+                name: "حركة القذيفة", icon: "rocket",
+                equations: {
+                    traj: {
+                        name: "معادلة المسار y(x)",
+                        latex: "y = -\\frac{g}{2v_0^2\\cos^2\\alpha}x^2 + \\tan\\alpha \\cdot x",
+                        syntax: "-(g * Math.pow(x, 2)) / (2 * Math.pow(v0, 2) * Math.pow(Math.cos(alpha_rad), 2)) + (Math.tan(alpha_rad) * x)",
+                        vars: { y: "الارتفاع y", x: "المسافة x", v0: "v0", alpha: "الزاوية α", g: "9.8" },
+                        solve: (t, v) => {
+                            const r = v.alpha * (Math.PI/180);
+                            return { res: -(v.g * v.x**2) / (2 * v.v0**2 * Math.cos(r)**2) + (Math.tan(r) * v.x), steps: ["استخراج الزمن $t$ من معادلة المحور $x$ وتعويضه في معادلة المحور $y$."] };
+                        }
+                    },
+                    peak: {
+                        name: "إحداثيات الذروة (yₛ)",
+                        latex: "y_s = \\frac{(v_0 \\sin\\alpha)^2}{2g}",
+                        syntax: "Math.pow(v0 * Math.sin(alpha_rad), 2) / (2 * g)",
+                        vars: { ys: "ارتفاع الذروة", v0: "v0", alpha: "الزاوية α", g: "9.8" },
+                        solve: (t, v) => {
+                            const r = v.alpha * (Math.PI/180);
+                            return { res: Math.pow(v.v0 * Math.sin(r), 2) / (2 * v.g), steps: ["عند الذروة تكون السرعة الشاقولية $v_y = 0$."] };
+                        }
+                    },
+                    range_x: {
+                        name: "المدى الأفقي الأقصى (Xp)",
+                        latex: "X_p = \\frac{v_0^2 \\sin(2\\alpha)}{g}",
+                        syntax: "(v0**2 * Math.sin(2 * alpha_rad)) / g",
+                        vars: { Xp: "المدى x", v0: "v0", alpha: "الزاوية α", g: "9.8" },
+                        solve: (t, v) => {
+                            const r = v.alpha * (Math.PI/180);
+                            return { res: (v.v0**2 * Math.sin(2*r))/v.g, steps: ["المدى هو المسافة الأفقية عندما تسقط القذيفة على نفس المستوى ($y=0$)."] };
+                        }
+                    },
+                    v_instant: {
+                        name: "السرعة اللحظية (v)",
+                        latex: "v(t) = \\sqrt{v_x^2 + v_y^2}",
+                        syntax: "Math.sqrt((v0*Math.cos(rad))**2 + (v0*Math.sin(rad) - g*t)**2)",
+                        vars: { v: "السرعة v", v0: "v0", alpha: "الزاوية", t: "الزمن t", g: "9.8" },
+                        solve: (t, v) => {
+                            const r = v.alpha * (Math.PI/180);
+                            const vx = v.v0 * Math.cos(r);
+                            const vy = v.v0 * Math.sin(r) - v.g * v.t;
+                            return { res: Math.sqrt(vx**2 + vy**2), steps: ["حساب المركبة الأفقية $v_x$ والمركبة الشاقولية $v_y$.", "حساب المحصلة تحت الجذر."] };
+                        }
+                    }
+                }
+            },
+            inclined: {
+                name: "المستوي المائل/الأفقي", icon: "triangle",
+                equations: {
+                    accel_f: {
+                        name: "التسارع بوجود احتكاك",
+                        latex: "a = g \\sin\\alpha - \\frac{f}{m}",
+                        syntax: "g * Math.sin(alpha_rad) - (f / m)",
+                        vars: { a: "التسارع a", g: "9.8", alpha: "الزاوية α", f: "الاحتكاك f", m: "الكتلة m" },
+                        solve: (t, v) => {
+                            const r = v.alpha * (Math.PI/180);
+                            return { res: v.g * Math.sin(r) - (v.f / v.m), steps: ["بتطبيق قانون نيوتن الثاني والإسقاط على محور الحركة $Ox$."] };
+                        }
+                    }
+                }
+            },
+            energy: {
+                name: "الطاقة والاستطاعة", icon: "zap",
+                equations: {
+                    v_energy: {
+                        name: "السرعة (مبدأ انحفاظ الطاقة)",
+                        latex: "v_B = \\sqrt{2gL\\sin\\alpha + v_A^2}",
+                        syntax: "Math.sqrt(2 * g * L * Math.sin(alpha_rad) + Math.pow(vA, 2))",
+                        vars: { vB: "السرعة عند B", vA: "السرعة عند A", L: "المسافة L", alpha: "الزاوية α", g: "9.8" },
+                        solve: (t, v) => {
+                            const r = v.alpha * (Math.PI/180);
+                            return { res: Math.sqrt(2 * v.g * v.L * Math.sin(r) + v.vA**2), steps: ["تطبيق مبدأ انحفاظ الطاقة: $E_{CB} - E_{CA} = W(\\vec{P})$"] };
+                        }
+                    },
+                    p_inst: {
+                        name: "الاستطاعة اللحظية (P)",
+                        latex: "P = F \\cdot v \\cdot \\cos\\theta",
+                        syntax: "F * v * Math.cos(theta_rad)",
+                        vars: { P: "الاستطاعة", F: "القوة", v: "السرعة", theta: "الزاوية بينهما" },
+                        solve: (t, v) => ({ res: v.F * v.v * Math.cos(v.theta * Math.PI/180), steps: ["الاستطاعة هي الجداء السلمي لشعاع القوة في شعاع السرعة اللحظية."] })
+                    }
+                }
+            }
+        };
+
+        const grid = document.getElementById('mainGrid');
+        const solver = document.getElementById('solverContainer');
+
+        Object.keys(MechanicsDB).forEach(key => {
+            const cat = MechanicsDB[key];
+            const div = document.createElement('div');
+            div.className = "glass-panel p-6 rounded-3xl cursor-pointer text-center hover:shadow-lg hover:border-blue-400 transition-all group";
+            div.innerHTML = `
+                <div class="bg-blue-50 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <i data-lucide="${cat.icon}"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">${cat.name}</h3>
+                <p class="text-xs text-slate-400 mt-2">${Object.keys(cat.equations).length} معادلات</p>
+            `;
+            div.onclick = () => {
+                grid.classList.add('hidden');
+                solver.classList.remove('hidden');
+                document.getElementById('catTitle').innerText = cat.name;
+                const sel = document.getElementById('eqSelect');
+                sel.innerHTML = '<option value="">-- اختر المعادلة --</option>';
+                Object.keys(cat.equations).forEach(ek => { sel.innerHTML += `<option value="${key}|${ek}">${cat.equations[ek].name}</option>`; });
+                lucide.createIcons();
+            };
+            grid.appendChild(div);
+        });
+
+        function closeSolver() { 
+            grid.classList.remove('hidden'); 
+            solver.classList.add('hidden'); 
+            document.getElementById('resultPanel').classList.add('hidden'); 
+        }
+
+        document.getElementById('eqSelect').onchange = (e) => {
+            if(!e.target.value) return;
+            const [ck, ek] = e.target.value.split('|');
+            const eq = MechanicsDB[ck].equations[ek];
+            document.getElementById('mathDisplay').innerHTML = `\\[ ${eq.latex} \\]`;
+            document.getElementById('syntaxDisplay').innerText = `// حساب ${eq.name}\nconst result = ${eq.syntax};`;
+            
+            const area = document.getElementById('inputArea');
+            area.innerHTML = '';
+            Object.keys(eq.vars).forEach(v => {
+                area.innerHTML += `
+                    <div class="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                        <div class="var-badge py-2 px-3 text-xs font-mono">${v}</div>
+                        <div class="flex-1">
+                            <label class="block text-[8px] font-black text-slate-400 uppercase tracking-tighter">${eq.vars[v]}</label>
+                            <input type="number" id="in-${v}" placeholder="أدخل القيمة..." class="w-full outline-none font-bold text-slate-700 text-sm bg-transparent">
+                        </div>
+                        <input type="radio" name="target" value="${v}" class="w-4 h-4 accent-blue-600 cursor-pointer">
+                    </div>`;
+            });
+            MathJax.typeset();
+        };
+
+        document.getElementById('calcBtn').onclick = () => {
+            const val = document.getElementById('eqSelect').value;
+            const target = document.querySelector('input[name="target"]:checked')?.value;
+            if(!val || !target) return alert("الرجاء تحديد المعادلة والمجهول المراد حسابه.");
+            
+            const [ck, ek] = val.split('|');
+            const eq = MechanicsDB[ck].equations[ek];
+            const data = {};
+            Object.keys(eq.vars).forEach(v => { if(v !== target) data[v] = parseFloat(document.getElementById(`in-${v}`).value); });
+            
+            const sol = eq.solve(target, data);
+            document.getElementById('stepsList').innerHTML = sol.steps.map(s => `<div class="step-card p-4 rounded-xl shadow-sm mb-2 text-sm text-slate-600 bg-blue-50/30">${s}</div>`).join('') + 
+                `<div class="p-5 bg-slate-900 text-blue-400 rounded-2xl font-bold text-xl mt-4 text-center code-font">Result: ${target} = ${sol.res.toFixed(5)}</div>`;
+            
+            document.getElementById('resultPanel').classList.remove('hidden');
+            MathJax.typeset();
+        };
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
