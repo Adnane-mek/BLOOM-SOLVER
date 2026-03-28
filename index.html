@@ -13,9 +13,18 @@
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid #e2e8f0; }
         .code-font { font-family: 'Fira Code', monospace; direction: ltr; text-align: left; }
         .var-badge { background: #f1f5f9; color: #2563eb; font-weight: bold; min-width: 45px; text-align: center; border: 1px solid #e2e8f0; border-radius: 8px; }
-        .syntax-box { background: #1e293b; color: #38bdf8; padding: 12px; border-radius: 12px; font-size: 0.85rem; border-left: 4px solid #3b82f6; overflow-x: auto; }
+        .syntax-box { background: #1e293b; color: #38bdf8; padding: 12px; border-radius: 12px; font-size: 0.85rem; border-left: 4px solid #3b82f6; overflow-x: auto; white-space: pre-wrap; }
         .step-card { border-right: 4px solid #3b82f6; background: white; transition: all 0.2s; }
-        select { cursor: pointer; }
+        select { cursor: pointer; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: left 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-left: 2.5rem; -moz-appearance: none; -webkit-appearance: none; appearance: none; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        input[type="text"] { direction: ltr; text-align: right; }
+        .animate-pulse-once { animation: pulse-light 0.5s ease-out 1; }
+        @keyframes pulse-light { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
@@ -26,7 +35,7 @@
                 <h1 class="text-3xl font-black text-slate-900 tracking-tight">BLOOM <span class="text-blue-600">SOLVER</span></h1>
                 <p class="text-slate-500 text-sm font-medium italic">الموسوعة الشاملة - جميع معادلات الميكانيك المدمجة</p>
             </div>
-            <div class="bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs font-bold">Ultimate v4.0</div>
+            <!-- Version Tag: Ultimate v5.7 Final -->
         </header>
 
         <div id="mainGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
@@ -38,20 +47,21 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div class="lg:col-span-5 space-y-6">
-                    <div class="glass-panel p-6 rounded-[2.5rem] shadow-sm">
+                    <div class="glass-panel p-6 rounded-[2.5rem] shadow-sm h-full flex flex-col">
                         <h2 id="catTitle" class="text-xl font-bold mb-4 text-slate-800"></h2>
                         <select id="eqSelect" class="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 outline-none font-bold mb-6 transition-all text-sm"></select>
-                        <div id="inputArea" class="space-y-3"></div>
-                        <button id="calcBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl mt-8 shadow-lg flex items-center justify-center gap-2 transition-all">
+                        <div id="inputArea" class="space-y-3 flex-grow"></div>
+                        <button id="calcBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl mt-8 shadow-lg flex items-center justify-center gap-2 transition-all shrink-0">
                             <i data-lucide="zap" size="20"></i> استخراج الحل الرياضي والبرمجي
                         </button>
                     </div>
                 </div>
 
-                <div class="lg:col-span-7">
+                <div class="lg:col-span-7 overflow-y-auto max-h-[80vh] pr-2">
                     <div id="resultPanel" class="hidden space-y-4">
-                        <div class="glass-panel p-8 rounded-[2.5rem] text-center border-b-4 border-blue-600">
-                            <div id="mathDisplay" class="text-3xl py-4 overflow-x-auto"></div>
+                        <div class="glass-panel p-8 rounded-[2.5rem] text-center border-b-4 border-blue-600 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-4 opacity-5"><i data-lucide="calculator" size="100"></i></div>
+                            <div id="mathDisplay" class="text-3xl py-4 overflow-x-auto z-10 relative"></div>
                             <div class="mt-6 pt-6 border-t border-slate-100">
                                 <p class="text-[10px] font-black text-slate-400 uppercase mb-3 text-right">المعادلة برمجياً (Syntax)</p>
                                 <div id="syntaxDisplay" class="syntax-box code-font"></div>
@@ -68,9 +78,8 @@
             </div>
         </div>
     </div>
-
+    
     <script>
-        // المكتبة الشاملة (تحتوي على كل ما تم برمجته دون أي حذف)
         const MechanicsDB = {
             planets: {
                 name: "الأقمار والكواكب", icon: "orbit",
@@ -78,23 +87,57 @@
                     v_orbit: {
                         name: "السرعة المدارية (v)",
                         latex: "v = \\sqrt{\\frac{G \\cdot M}{R+h}}",
-                        syntax: "Math.sqrt((G * M) / (R + h))",
-                        vars: { v: "السرعة", G: "6.67e-11", M: "كتلة المركز", R: "نصف القطر", h: "الارتفاع" },
-                        solve: (t, v) => ({ res: Math.sqrt((v.G * v.M)/(v.R + v.h)), steps: ["نحسب البعد عن المركز $r = R + h$", "نعوض في قانون السرعة المدارية $v = \\sqrt{GM/r}$."] })
+                        defaultTarget: 'v',
+                        vars: {
+                            v: { name: "السرعة", units: { 'm/s': 1, 'km/h': 1/3.6, 'km/s': 1000 } },
+                            G: { name: "ثابت الجذب العام", value: 6.67e-11, units: { 'N.m²/kg²': 1 } },
+                            M: { name: "كتلة الجسم المركزي", units: { 'kg': 1, '10^24 kg': 1e24 } },
+                            R: { name: "نصف قطر الكوكب", units: { 'm': 1, 'km': 1000 } },
+                            h: { name: "الارتفاع عن السطح", units: { 'm': 1, 'km': 1000 } }
+                        },
+                        syntaxes: { v: "Math.sqrt((G * M) / (R + h))", M: "(v**2 * (R + h)) / G", R: "((G * M) / v**2) - h", h: "((G * M) / v**2) - R" },
+                        solvers: {
+                            v: (d) => Math.sqrt((d.G * d.M) / (d.R + d.h)),
+                            M: (d) => (d.v**2 * (d.R + d.h)) / d.G,
+                            R: (d) => ((d.G * d.M) / d.v**2) - d.h,
+                            h: (d) => ((d.G * d.M) / d.v**2) - d.R
+                        },
+                        steps: (t) => [`تحديد المعطيات وتوحيد الوحدات.`, `عزل المجهول ${t} جبرياً.`, `التعويض في المعادلة وحساب الناتج.`]
                     },
                     period_t: {
                         name: "الدور المداري (T)",
                         latex: "T = \\frac{2\\pi r}{v}",
-                        syntax: "(2 * Math.PI * r) / v",
-                        vars: { T: "الدور s", r: "نصف القطر m", v: "السرعة m/s" },
-                        solve: (t, v) => ({ res: (2 * Math.PI * v.r)/v.v, steps: ["الدور هو المسافة المقطوعة خلال دورة مقسومة على السرعة: $T = 2\\pi r / v$"] })
+                        defaultTarget: 'T',
+                        vars: {
+                            T: { name: "زمن الدورة", units: { 's': 1, 'min': 60, 'hour': 3600 } },
+                            r: { name: "شعاع المدار", units: { 'm': 1, 'km': 1000 } },
+                            v: { name: "السرعة المدارية", units: { 'm/s': 1, 'km/h': 1/3.6 } }
+                        },
+                        syntaxes: { T: "(2 * Math.PI * r) / v", v: "(2 * Math.PI * r) / T", r: "(v * T) / (2 * Math.PI)" },
+                        solvers: {
+                            T: (d) => (2 * Math.PI * d.r) / d.v,
+                            v: (d) => (2 * Math.PI * d.r) / d.T,
+                            r: (d) => (d.v * d.T) / (2 * Math.PI)
+                        },
+                        steps: (t) => [`استخدام العلاقة بين المحيط والسرعة.`, `استخراج ${t}.`]
                     },
                     kepler_3: {
-                        name: "قانون كبلر الثالث (T²/r³)",
+                        name: "قانون كبلر الثالث",
                         latex: "\\frac{T^2}{r^3} = \\frac{4\\pi^2}{G \\cdot M}",
-                        syntax: "(4 * Math.PI**2) / (G * M)",
-                        vars: { T: "الدور T", r: "نصف القطر r", M: "كتلة المركز M", G: "6.67e-11" },
-                        solve: (t, v) => ({ res: Math.sqrt((4 * Math.PI**2 * v.r**3)/(v.G * v.M)), steps: ["نعزل الدور: $T^2 = (4\\pi^2 r^3) / GM$", "نحسب الجذر التربيعي."] })
+                        defaultTarget: 'T',
+                        vars: {
+                            T: { name: "الدور الزمني", units: { 's': 1, 'day': 86400 } },
+                            r: { name: "نصف القطر", units: { 'm': 1, 'km': 1000 } },
+                            M: { name: "كتلة المركز", units: { 'kg': 1, '10^24 kg': 1e24 } },
+                            G: { name: "الثابت", value: 6.67e-11, units: { 'N.m²/kg²': 1 } }
+                        },
+                        syntaxes: { T: "Math.sqrt((4 * Math.PI**2 * r**3) / (G * M))", M: "(4 * Math.PI**2 * r**3) / (G * T**2)", r: "Math.cbrt((T**2 * G * M) / (4 * Math.PI**2))" },
+                        solvers: {
+                            T: (d) => Math.sqrt((4 * Math.PI**2 * d.r**3) / (d.G * d.M)),
+                            M: (d) => (4 * Math.PI**2 * d.r**3) / (d.G * d.T**2),
+                            r: (d) => Math.cbrt((d.T**2 * d.G * d.M) / (4 * Math.PI**2))
+                        },
+                        steps: (t) => [`معادلة قانون كبلر.`, `عزل ${t}.`]
                     }
                 }
             },
@@ -104,30 +147,83 @@
                     a0_with_arch: {
                         name: "التسارع الابتدائي (a₀)",
                         latex: "a_0 = g(1 - \\frac{\\rho_{air} V}{m})",
-                        syntax: "g * (1 - (rho * V) / m)",
-                        vars: { a0: "التسارع a0", g: "9.8", rho: "كثافة الهواء", V: "حجم الجسم", m: "الكتلة" },
-                        solve: (t, v) => ({ res: v.g * (1 - (v.rho * v.V)/v.m), steps: ["تطبيق قانون نيوتن الثاني عند $t=0$ وإسقاط القوى (الثقل ودافعة أرخميدس)."] })
+                        defaultTarget: 'a0',
+                        vars: {
+                            a0: { name: "التسارع الأولي", units: { 'm/s²': 1 } },
+                            g: { name: "تسارع الجاذبية الأرضية", value: 9.8, units: { 'm/s²': 1 } },
+                            rho: { name: "كثافة الهواء", units: { 'kg/m³': 1 } },
+                            V: { name: "حجم الجسم", units: { 'm³': 1, 'cm³': 1e-6 } },
+                            m: { name: "الكتلة", units: { 'kg': 1, 'g': 1/1000 } }
+                        },
+                        syntaxes: { a0: "g * (1 - (rho * V) / m)", rho: "(m * (1 - (a0/g))) / V", m: "(rho * V) / (1 - (a0/g))" },
+                        solvers: {
+                            a0: (d) => d.g * (1 - (d.rho * d.V)/d.m),
+                            rho: (d) => (d.m * (1 - (d.a0/d.g))) / d.V,
+                            m: (d) => (d.rho * d.V) / (1 - (d.a0/d.g))
+                        },
+                        steps: (t) => [`تحليل القوى عند اللحظة الأولى.`, `فرض التسارع ${t} والمجهولات الأخرى.`]
                     },
                     vlim_small: {
-                        name: "السرعة الحدية (سرعات صغيرة f=kv)",
-                        latex: "v_{lim} = \\frac{m \\cdot g}{k} (1 - \\frac{\\rho_a \\cdot V}{m})",
-                        syntax: "(m * g / k) * (1 - (rho_a * V) / m)",
-                        vars: { vlim: "v_lim", m: "الكتلة", g: "9.8", k: "معامل k", rho_a: "كثافة الهواء", V: "الحجم" },
-                        solve: (t, v) => ({ res: (v.m * v.g / v.k) * (1 - (v.rho_a * v.V)/v.m), steps: ["عند النظام الدائم $a=0$.", "مجموع القوى $P - \\Pi - f = 0$ حيث $f = kv_{lim}$."] })
+                        name: "السرعة الحدية (احتكاك خطي kv)",
+                        latex: "v_{lim} = \\frac{mg}{k} (1 - \\frac{\\rho_a \\cdot V}{m})",
+                        defaultTarget: 'vlim',
+                        vars: {
+                            vlim: { name: "السرعة الحدية", units: { 'm/s': 1 } },
+                            m: { name: "الكتلة", units: { 'kg': 1 } },
+                            g: { name: "الجاذبية", value: 9.8, units: { 'm/s²': 1 } },
+                            k: { name: "معامل الاحتكاك", units: { 'N.s/m': 1, 'kg/s': 1 } },
+                            rho_a: { name: "كثافة الهواء", units: { 'kg/m³': 1 } },
+                            V: { name: "الحجم", units: { 'm³': 1 } }
+                        },
+                        syntaxes: {
+                            vlim: "(m * g / k) * (1 - (rho_a * V) / m)",
+                            k: "(m * g * (1 - (rho_a * V) / m)) / vlim",
+                            rho_a: "(m - (k * vlim / g)) / V"
+                        },
+                        solvers: {
+                            vlim: (d) => (d.m * d.g / d.k) * (1 - (d.rho_a * d.V)/d.m),
+                            k: (d) => (d.m * d.g * (1 - (d.rho_a * d.V) / d.m)) / d.vlim,
+                            rho_a: (d) => (d.m - (d.k * d.vlim / d.g)) / d.V
+                        },
+                        steps: (t) => [`عند النظام الدائم المحصلة تساوي صفر.`, `القوى: الوزن، الدفع، ومقاومة السوائل.`]
                     },
                     vlim_v2: {
-                        name: "السرعة الحدية (سرعات كبيرة f=kv²)",
+                        name: "السرعة الحدية (احتكاك تربيعي kv²)",
                         latex: "v_{lim} = \\sqrt{\\frac{mg - \\Pi}{k}}",
-                        syntax: "Math.sqrt((m * g - Pi) / k)",
-                        vars: { vlim: "v_lim", m: "الكتلة", g: "9.8", Pi: "أرخميدس", k: "معامل k" },
-                        solve: (t, v) => ({ res: Math.sqrt((v.m * v.g - v.Pi)/v.k), steps: ["عند النظام الدائم $a=0$.", "بما أن الاحتكاك $f=kv^2$ فإن $v_{lim} = \\sqrt{(P-\\Pi)/k}$."] })
+                        defaultTarget: 'vlim',
+                        vars: {
+                            vlim: { name: "السرعة الحدية", units: { 'm/s': 1 } },
+                            m: { name: "الكتلة", units: { 'kg': 1 } },
+                            g: { name: "الجاذبية", value: 9.8, units: { 'm/s²': 1 } },
+                            Pi: { name: "قوة أرخميدس", units: { 'N': 1 } },
+                            k: { name: "معامل السرعة التربيعية", units: { 'kg/m': 1 } }
+                        },
+                        syntaxes: {
+                            vlim: "Math.sqrt((m * g - Pi) / k)",
+                            Pi: "(m * g) - (k * vlim**2)",
+                            k: "(m * g - Pi) / vlim**2",
+                            m: "(k * vlim**2 + Pi) / g"
+                        },
+                        solvers: {
+                            vlim: (d) => Math.sqrt((d.m * d.g - d.Pi)/d.k),
+                            Pi: (d) => (d.m * d.g) - (d.k * d.vlim**2),
+                            k: (d) => (d.m * d.g - d.Pi) / d.vlim**2,
+                            m: (d) => (d.k * d.vlim**2 + d.Pi) / d.g
+                        },
+                        steps: (t) => [`شرط النظام الدائم a=0.`, `القوى تعتمد على مربع السرعة.`]
                     },
                     tau: {
                         name: "ثابت الزمن (τ)",
                         latex: "\\tau = \\frac{m}{k}",
-                        syntax: "m / k",
-                        vars: { tau: "ثابت الزمن", m: "الكتلة kg", k: "معامل k" },
-                        solve: (t, v) => ({ res: v.m / v.k, steps: ["ثابت الزمن يعبر عن زمن بلوغ 63% من السرعة الحدية في غياب أرخميدس."] })
+                        defaultTarget: 'tau',
+                        vars: {
+                            tau: { name: "ثابت الزمن", units: { 's': 1 } },
+                            m: { name: "الكتلة", units: { 'kg': 1 } },
+                            k: { name: "معامل الاحتكاك", units: { 'N.s/m': 1 } }
+                        },
+                        syntaxes: { tau: "m / k", k: "m / tau", m: "k * tau" },
+                        solvers: { tau: (d) => d.m / d.k, k: (d) => d.m / d.tau, m: (d) => d.k * d.tau },
+                        steps: (t) => [`تعريف ثابت الزمن.`, `الزمن اللازم لبلوغ سرعة 63% من الحدية.`]
                     }
                 }
             },
@@ -137,44 +233,102 @@
                     traj: {
                         name: "معادلة المسار y(x)",
                         latex: "y = -\\frac{g}{2v_0^2\\cos^2\\alpha}x^2 + \\tan\\alpha \\cdot x",
-                        syntax: "-(g * Math.pow(x, 2)) / (2 * Math.pow(v0, 2) * Math.pow(Math.cos(alpha_rad), 2)) + (Math.tan(alpha_rad) * x)",
-                        vars: { y: "الارتفاع y", x: "المسافة x", v0: "v0", alpha: "الزاوية α", g: "9.8" },
-                        solve: (t, v) => {
-                            const r = v.alpha * (Math.PI/180);
-                            return { res: -(v.g * v.x**2) / (2 * v.v0**2 * Math.cos(r)**2) + (Math.tan(r) * v.x), steps: ["استخراج الزمن $t$ من معادلة المحور $x$ وتعويضه في معادلة المحور $y$."] };
-                        }
+                        defaultTarget: 'y',
+                        vars: {
+                            y: { name: "الارتفاع العمودي", units: { 'm': 1 } },
+                            x: { name: "الإزاحة الأفقية", units: { 'm': 1 } },
+                            v0: { name: "السرعة الابتدائية", units: { 'm/s': 1, 'km/h': 1/3.6 } },
+                            alpha: { name: "زاوية القذف", units: { 'deg': 1, 'rad': 180/Math.PI } },
+                            g: { name: "الجاذبية", value: 9.8, units: { 'm/s²': 1 } }
+                        },
+                        syntaxes: {
+                            y: "-(g * x**2) / (2 * v0**2 * Math.cos(alpha_rad)**2) + (Math.tan(alpha_rad) * x)",
+                            x: undefined, v0: undefined, alpha: undefined
+                        },
+                        solvers: {
+                            y: (d) => {
+                                const rad = d.alpha * Math.PI / 180;
+                                return -(d.g * d.x**2) / (2 * d.v0**2 * Math.cos(rad)**2) + (Math.tan(rad) * d.x);
+                            }
+                        },
+                        steps: (t) => [`تعويض الزمن من معادلة x في معادلة y.`]
                     },
                     peak: {
                         name: "إحداثيات الذروة (yₛ)",
                         latex: "y_s = \\frac{(v_0 \\sin\\alpha)^2}{2g}",
-                        syntax: "Math.pow(v0 * Math.sin(alpha_rad), 2) / (2 * g)",
-                        vars: { ys: "ارتفاع الذروة", v0: "v0", alpha: "الزاوية α", g: "9.8" },
-                        solve: (t, v) => {
-                            const r = v.alpha * (Math.PI/180);
-                            return { res: Math.pow(v.v0 * Math.sin(r), 2) / (2 * v.g), steps: ["عند الذروة تكون السرعة الشاقولية $v_y = 0$."] };
-                        }
+                        defaultTarget: 'ys',
+                        vars: {
+                            ys: { name: "أقصى ارتفاع", units: { 'm': 1 } },
+                            v0: { name: "السرعة الابتدائية", units: { 'm/s': 1, 'km/h': 1/3.6 } },
+                            alpha: { name: "زاوية القذف", units: { 'deg': 1 } },
+                            g: { name: "الجاذبية", value: 9.8, units: { 'm/s²': 1 } }
+                        },
+                        syntaxes: {
+                            ys: "Math.pow(v0 * Math.sin(alpha_rad), 2) / (2 * g)",
+                            v0: "Math.sqrt(2 * g * ys) / Math.sin(alpha_rad)",
+                            alpha: "Math.asin(Math.sqrt(2 * g * ys) / v0) * (180/Math.PI)"
+                        },
+                        solvers: {
+                            ys: (d) => Math.pow(d.v0 * Math.sin(d.alpha * Math.PI / 180), 2) / (2 * d.g),
+                            v0: (d) => Math.sqrt(2 * d.g * d.ys) / Math.sin(d.alpha * Math.PI / 180),
+                            alpha: (d) => Math.asin(Math.sqrt(2 * d.g * d.ys) / d.v0) * (180/Math.PI)
+                        },
+                        steps: (t) => [`السرعة الشاقولية تصبح صفراً عند الذروة.`]
                     },
                     range_x: {
                         name: "المدى الأفقي الأقصى (Xp)",
                         latex: "X_p = \\frac{v_0^2 \\sin(2\\alpha)}{g}",
-                        syntax: "(v0**2 * Math.sin(2 * alpha_rad)) / g",
-                        vars: { Xp: "المدى x", v0: "v0", alpha: "الزاوية α", g: "9.8" },
-                        solve: (t, v) => {
-                            const r = v.alpha * (Math.PI/180);
-                            return { res: (v.v0**2 * Math.sin(2*r))/v.g, steps: ["المدى هو المسافة الأفقية عندما تسقط القذيفة على نفس المستوى ($y=0$)."] };
-                        }
+                        defaultTarget: 'Xp',
+                        vars: {
+                            Xp: { name: "أقصى مدى", units: { 'm': 1, 'km': 1000 } },
+                            v0: { name: "السرعة الابتدائية", units: { 'm/s': 1, 'km/h': 1/3.6 } },
+                            alpha: { name: "زاوية الإطلاق", units: { 'deg': 1 } },
+                            g: { name: "الجاذبية", value: 9.8, units: { 'm/s²': 1 } }
+                        },
+                        syntaxes: {
+                            Xp: "(v0**2 * Math.sin(2 * alpha_rad)) / g",
+                            v0: "Math.sqrt((Xp * g) / Math.sin(2 * alpha_rad))",
+                            alpha: "(0.5 * Math.asin((Xp * g) / v0**2)) * (180/Math.PI)"
+                        },
+                        solvers: {
+                            Xp: (d) => (d.v0**2 * Math.sin(2 * (d.alpha * Math.PI / 180))) / d.g,
+                            v0: (d) => Math.sqrt((d.Xp * d.g) / Math.sin(2 * (d.alpha * Math.PI / 180))),
+                            alpha: (d) => (0.5 * Math.asin((d.Xp * d.g) / d.v0**2)) * (180/Math.PI)
+                        },
+                        steps: (t) => [`المدى هو المسافة عندما y=0 عند نفس مستوى الإطلاق.`]
                     },
                     v_instant: {
                         name: "السرعة اللحظية (v)",
                         latex: "v(t) = \\sqrt{v_x^2 + v_y^2}",
-                        syntax: "Math.sqrt((v0*Math.cos(rad))**2 + (v0*Math.sin(rad) - g*t)**2)",
-                        vars: { v: "السرعة v", v0: "v0", alpha: "الزاوية", t: "الزمن t", g: "9.8" },
-                        solve: (t, v) => {
-                            const r = v.alpha * (Math.PI/180);
-                            const vx = v.v0 * Math.cos(r);
-                            const vy = v.v0 * Math.sin(r) - v.g * v.t;
-                            return { res: Math.sqrt(vx**2 + vy**2), steps: ["حساب المركبة الأفقية $v_x$ والمركبة الشاقولية $v_y$.", "حساب المحصلة تحت الجذر."] };
-                        }
+                        defaultTarget: 'v',
+                        vars: {
+                            v: { name: "السرعة اللحظية", units: { 'm/s': 1 } },
+                            v0: { name: "السرعة الابتدائية", units: { 'm/s': 1 } },
+                            alpha: { name: "الزاوية الأولية", units: { 'deg': 1 } },
+                            t: { name: "الزمن المنقضي", units: { 's': 1 } },
+                            g: { name: "الجاذبية", value: 9.8, units: { 'm/s²': 1 } }
+                        },
+                        syntaxes: {
+                            v: "Math.sqrt((v0*Math.cos(rad))**2 + (v0*Math.sin(rad) - g*t)**2)",
+                            t: "(v0*Math.sin(rad) - Math.sqrt(v**2 - (v0*Math.cos(rad))**2)) / g",
+                            v0: undefined, alpha: undefined
+                        },
+                        solvers: {
+                            v: (d) => {
+                                const rad = d.alpha * Math.PI / 180;
+                                const vx = d.v0 * Math.cos(rad);
+                                const vy = d.v0 * Math.sin(rad) - d.g * d.t;
+                                return Math.sqrt(vx**2 + vy**2);
+                            },
+                            t: (d) => {
+                                const rad = d.alpha * Math.PI / 180;
+                                const vx = d.v0 * Math.cos(rad);
+                                if (d.v**2 < vx**2) return NaN;
+                                const vy = Math.sqrt(d.v**2 - vx**2);
+                                return (d.v0 * Math.sin(rad) - vy) / d.g; 
+                            }
+                        },
+                        steps: (t) => [`جمع مركبات السرعة الأفقية والشاقولية.`]
                     }
                 }
             },
@@ -183,13 +337,28 @@
                 equations: {
                     accel_f: {
                         name: "التسارع بوجود احتكاك",
-                        latex: "a = g \\sin\\alpha - \\frac{f}{m}",
-                        syntax: "g * Math.sin(alpha_rad) - (f / m)",
-                        vars: { a: "التسارع a", g: "9.8", alpha: "الزاوية α", f: "الاحتكاك f", m: "الكتلة m" },
-                        solve: (t, v) => {
-                            const r = v.alpha * (Math.PI/180);
-                            return { res: v.g * Math.sin(r) - (v.f / v.m), steps: ["بتطبيق قانون نيوتن الثاني والإسقاط على محور الحركة $Ox$."] };
-                        }
+                        latex: "a = g \\sin\\alpha - \\frac{f_{friction}}{m}",
+                        defaultTarget: 'a',
+                        vars: {
+                            a: { name: "التسارع", units: { 'm/s²': 1 } },
+                            g: { name: "الجاذبية", value: 9.8, units: { 'm/s²': 1 } },
+                            alpha: { name: "زاوية الميل", units: { 'deg': 1 } },
+                            f: { name: "قوة الاحتكاك", units: { 'N': 1 } },
+                            m: { name: "الكتلة", units: { 'kg': 1 } }
+                        },
+                        syntaxes: {
+                            a: "g * Math.sin(alpha_rad) - (f / m)",
+                            f: "(g * Math.sin(alpha_rad) - a) * m",
+                            m: "f / (g * Math.sin(alpha_rad) - a)",
+                            alpha: undefined
+                        },
+                        solvers: {
+                            a: (d) => d.g * Math.sin(d.alpha * Math.PI / 180) - (d.f / d.m),
+                            f: (d) => (d.g * Math.sin(d.alpha * Math.PI / 180) - d.a) * d.m,
+                            m: (d) => d.f / (d.g * Math.sin(d.alpha * Math.PI / 180) - d.a),
+                            alpha: (d) => Math.asin((d.a + d.f / d.m) / d.g) * (180 / Math.PI)
+                        },
+                        steps: (t) => [`تحليل القوى على المحور الموازي للمستوي.`, `تطبيق قانون نيوتن الثاني.`]
                     }
                 }
             },
@@ -197,21 +366,53 @@
                 name: "الطاقة والاستطاعة", icon: "zap",
                 equations: {
                     v_energy: {
-                        name: "السرعة (مبدأ انحفاظ الطاقة)",
+                        name: "السرعة (انحفاظ الطاقة)",
                         latex: "v_B = \\sqrt{2gL\\sin\\alpha + v_A^2}",
-                        syntax: "Math.sqrt(2 * g * L * Math.sin(alpha_rad) + Math.pow(vA, 2))",
-                        vars: { vB: "السرعة عند B", vA: "السرعة عند A", L: "المسافة L", alpha: "الزاوية α", g: "9.8" },
-                        solve: (t, v) => {
-                            const r = v.alpha * (Math.PI/180);
-                            return { res: Math.sqrt(2 * v.g * v.L * Math.sin(r) + v.vA**2), steps: ["تطبيق مبدأ انحفاظ الطاقة: $E_{CB} - E_{CA} = W(\\vec{P})$"] };
-                        }
+                        defaultTarget: 'vB',
+                        vars: {
+                            vB: { name: "السرعة عند B", units: { 'm/s': 1, 'km/h': 1/3.6 } },
+                            vA: { name: "السرعة عند A", units: { 'm/s': 1, 'km/h': 1/3.6 } },
+                            L: { name: "طول الانزلاق", units: { 'm': 1, 'km': 1000 } },
+                            alpha: { name: "زاوية الميل", units: { 'deg': 1 } },
+                            g: { name: "الجاذبية", value: 9.8, units: { 'm/s²': 1 } }
+                        },
+                        syntaxes: {
+                            vB: "Math.sqrt(2 * g * L * Math.sin(alpha_rad) + vA**2)",
+                            vA: "Math.sqrt(vB**2 - 2 * g * L * Math.sin(alpha_rad))",
+                            L: "(vB**2 - vA**2) / (2 * g * Math.sin(alpha_rad))",
+                            alpha: "Math.asin((vB**2 - vA**2)/(2*g*L)) * (180/Math.PI)"
+                        },
+                        solvers: {
+                            vB: (d) => Math.sqrt(2 * d.g * d.L * Math.sin(d.alpha * Math.PI / 180) + d.vA**2),
+                            vA: (d) => Math.sqrt(d.vB**2 - 2 * d.g * d.L * Math.sin(d.alpha * Math.PI / 180)),
+                            L: (d) => (d.vB**2 - d.vA**2) / (2 * d.g * Math.sin(d.alpha * Math.PI / 180)),
+                            alpha: (d) => Math.asin((d.vB**2 - d.vA**2) / (2 * d.g * d.L)) * (180/Math.PI)
+                        },
+                        steps: (t) => [`تطبيق مبدأ انحفاظ الطاقة الميكانيكية.`]
                     },
                     p_inst: {
                         name: "الاستطاعة اللحظية (P)",
                         latex: "P = F \\cdot v \\cdot \\cos\\theta",
-                        syntax: "F * v * Math.cos(theta_rad)",
-                        vars: { P: "الاستطاعة", F: "القوة", v: "السرعة", theta: "الزاوية بينهما" },
-                        solve: (t, v) => ({ res: v.F * v.v * Math.cos(v.theta * Math.PI/180), steps: ["الاستطاعة هي الجداء السلمي لشعاع القوة في شعاع السرعة اللحظية."] })
+                        defaultTarget: 'P',
+                        vars: {
+                            P: { name: "الاستطاعة اللحظية", units: { 'W': 1, 'kW': 1000 } },
+                            F: { name: "القوة المطبقة", units: { 'N': 1 } },
+                            v: { name: "السرعة اللحظية", units: { 'm/s': 1, 'km/h': 1/3.6 } },
+                            theta: { name: "الزاوية بين القوة والسرعة", units: { 'deg': 1 } }
+                        },
+                        syntaxes: {
+                            P: "F * v * Math.cos(theta_rad)",
+                            F: "P / (v * Math.cos(theta_rad))",
+                            v: "P / (F * Math.cos(theta_rad))",
+                            theta: "Math.acos(P / (F * v)) * (180/Math.PI)"
+                        },
+                        solvers: {
+                            P: (d) => d.F * d.v * Math.cos(d.theta * Math.PI/180),
+                            F: (d) => d.P / (d.v * Math.cos(d.theta * Math.PI/180)),
+                            v: (d) => d.P / (d.F * Math.cos(d.theta * Math.PI/180)),
+                            theta: (d) => Math.acos(d.P / (d.F * d.v)) * (180/Math.PI)
+                        },
+                        steps: (t) => [`الاستطاعة هي الجداء السلمي للقوة والسرعة.`]
                     }
                 }
             }
@@ -219,6 +420,24 @@
 
         const grid = document.getElementById('mainGrid');
         const solver = document.getElementById('solverContainer');
+        let currentCategoryKey = null;
+        let currentEquationKey = null;
+
+        function parseScientific(value) {
+            if (typeof value !== 'string') return parseFloat(value);
+            const s = value.trim().toLowerCase();
+            if (!s) return NaN;
+            if (s.includes('e')) return parseFloat(s);
+            if (s.includes('*10^')) {
+                const parts = s.split('*10^');
+                if (parts.length === 2) {
+                    const base = parseFloat(parts[0]);
+                    const exponent = parseFloat(parts[1]);
+                    if (!isNaN(base) && !isNaN(exponent)) return base * Math.pow(10, exponent);
+                }
+            }
+            return parseFloat(s);
+        }
 
         Object.keys(MechanicsDB).forEach(key => {
             const cat = MechanicsDB[key];
@@ -232,12 +451,11 @@
                 <p class="text-xs text-slate-400 mt-2">${Object.keys(cat.equations).length} معادلات</p>
             `;
             div.onclick = () => {
+                currentCategoryKey = key;
                 grid.classList.add('hidden');
                 solver.classList.remove('hidden');
                 document.getElementById('catTitle').innerText = cat.name;
-                const sel = document.getElementById('eqSelect');
-                sel.innerHTML = '<option value="">-- اختر المعادلة --</option>';
-                Object.keys(cat.equations).forEach(ek => { sel.innerHTML += `<option value="${key}|${ek}">${cat.equations[ek].name}</option>`; });
+                renderEquationSelector(cat.equations);
                 lucide.createIcons();
             };
             grid.appendChild(div);
@@ -247,44 +465,158 @@
             grid.classList.remove('hidden'); 
             solver.classList.add('hidden'); 
             document.getElementById('resultPanel').classList.add('hidden'); 
+            document.getElementById('mathDisplay').innerHTML = '';
+            document.getElementById('inputArea').innerHTML = '';
+            currentCategoryKey = null;
+            currentEquationKey = null;
+        } 
+
+        function renderEquationSelector(equations) {
+            const sel = document.getElementById('eqSelect');
+            sel.innerHTML = '<option value="">-- اختر المعادلة --</option>';
+            Object.keys(equations).forEach(ek => { 
+                sel.innerHTML += `<option value="${ek}">${equations[ek].name}</option>`; 
+            });
+        }
+
+        function updateSyntaxDisplay(target) {
+            if (!currentEquationKey || !currentCategoryKey) return;
+            const eq = MechanicsDB[currentCategoryKey].equations[currentEquationKey];
+            const syntax = eq.syntaxes[target];
+            const displayDiv = document.getElementById('syntaxDisplay');
+            
+            if (syntax) {
+                displayDiv.innerText = `// حساب ${eq.vars[target].name} (${target})\nconst result = ${syntax};`;
+            } else {
+                displayDiv.innerText = `// لا توجد صيغة برمجية مباشرة لحساب هذا المتغير.`;
+            }
         }
 
         document.getElementById('eqSelect').onchange = (e) => {
-            if(!e.target.value) return;
-            const [ck, ek] = e.target.value.split('|');
-            const eq = MechanicsDB[ck].equations[ek];
-            document.getElementById('mathDisplay').innerHTML = `\\[ ${eq.latex} \\]`;
-            document.getElementById('syntaxDisplay').innerText = `// حساب ${eq.name}\nconst result = ${eq.syntax};`;
+            currentEquationKey = e.target.value;
+            document.getElementById('resultPanel').classList.add('hidden');
             
+            if(!currentEquationKey || !currentCategoryKey) {
+                document.getElementById('inputArea').innerHTML = '';
+                return;
+            }
+            
+            const eq = MechanicsDB[currentCategoryKey].equations[currentEquationKey];
+            if(!eq) return;
+
+            document.getElementById('mathDisplay').innerHTML = `\\[ ${eq.latex} \\]`;
             const area = document.getElementById('inputArea');
             area.innerHTML = '';
+            const defaultTarget = eq.defaultTarget;
+
             Object.keys(eq.vars).forEach(v => {
+                const varInfo = eq.vars[v];
                 area.innerHTML += `
-                    <div class="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-                        <div class="var-badge py-2 px-3 text-xs font-mono">${v}</div>
-                        <div class="flex-1">
-                            <label class="block text-[8px] font-black text-slate-400 uppercase tracking-tighter">${eq.vars[v]}</label>
-                            <input type="number" id="in-${v}" placeholder="أدخل القيمة..." class="w-full outline-none font-bold text-slate-700 text-sm bg-transparent">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                        <div class="var-badge py-2 px-3 text-xs font-mono whitespace-nowrap">${v}</div>
+                        <div class="flex-1 w-full">
+                            <label class="block text-[8px] font-black text-slate-400 uppercase tracking-tighter mb-1">${varInfo.name}</label>
+                            <input type="text" id="in-${v}" value="${varInfo.value !== undefined ? varInfo.value.toExponential(2) : ''}" 
+                                   placeholder="أدخل قيمة (e.g., 5.98e24)" ${varInfo.value !== undefined ? 'disabled' : ''} 
+                                   class="w-full outline-none font-bold text-slate-700 text-sm bg-transparent border-b-2 border-slate-200 focus:border-blue-500 pb-1">
                         </div>
-                        <input type="radio" name="target" value="${v}" class="w-4 h-4 accent-blue-600 cursor-pointer">
+                         <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+                            <select id="unit-${v}" class="text-xs bg-slate-100 rounded-lg p-2 outline-none border-transparent focus:border-blue-500 min-w-[80px]"></select>
+                            <input type="radio" name="target" value="${v}" ${v===defaultTarget ? 'checked' : ''} class="w-5 h-5 accent-blue-600 cursor-pointer">
+                        </div>
                     </div>`;
+                    
+                const unitSelectElem = area.querySelector(`#unit-${v}`);
+                Object.entries(varInfo.units).forEach(([uName, factor]) => {
+                    const opt = document.createElement('option');
+                    opt.value = factor;
+                    opt.text = uName;
+                    if(factor == 1) opt.selected = true;
+                    unitSelectElem.appendChild(opt);
+                });
             });
+            
+            document.querySelectorAll('input[name="target"]').forEach(radio => {
+                radio.addEventListener('change', (event) => { updateSyntaxDisplay(event.target.value); });
+            });
+
+            updateSyntaxDisplay(defaultTarget);
             MathJax.typeset();
         };
 
         document.getElementById('calcBtn').onclick = () => {
-            const val = document.getElementById('eqSelect').value;
+            if(!currentEquationKey || !currentCategoryKey) {
+                return alert("الرجاء تحديد معادلة أولاً.");
+            }
+            
             const target = document.querySelector('input[name="target"]:checked')?.value;
-            if(!val || !target) return alert("الرجاء تحديد المعادلة والمجهول المراد حسابه.");
+            if(!target) {
+                return alert("الرجاء تحديد المجهول المراد حسابه.");
+            }
             
-            const [ck, ek] = val.split('|');
-            const eq = MechanicsDB[ck].equations[ek];
+            const eq = MechanicsDB[currentCategoryKey].equations[currentEquationKey];
             const data = {};
-            Object.keys(eq.vars).forEach(v => { if(v !== target) data[v] = parseFloat(document.getElementById(`in-${v}`).value); });
+            let allInputsValid = true;
             
-            const sol = eq.solve(target, data);
-            document.getElementById('stepsList').innerHTML = sol.steps.map(s => `<div class="step-card p-4 rounded-xl shadow-sm mb-2 text-sm text-slate-600 bg-blue-50/30">${s}</div>`).join('') + 
-                `<div class="p-5 bg-slate-900 text-blue-400 rounded-2xl font-bold text-xl mt-4 text-center code-font">Result: ${target} = ${sol.res.toFixed(5)}</div>`;
+            for (const varKey of Object.keys(eq.vars)) {
+                const inputElem = document.getElementById(`in-${varKey}`);
+                const unitFactor = parseScientific(document.getElementById(`unit-${varKey}`).value);
+                
+                if (eq.vars[varKey].value !== undefined) {
+                    data[varKey] = eq.vars[varKey].value;
+                    continue;
+                }
+
+                if (varKey === target) {
+                    continue;
+                }
+
+                const rawValue = inputElem.value;
+                const val = parseScientific(rawValue);
+
+                if (isNaN(val)) {
+                    allInputsValid = false;
+                    inputElem.style.borderBottomColor = 'red';
+                } else {
+                    inputElem.style.borderBottomColor = '';
+                    data[varKey] = val * unitFactor;
+                }
+            }
+
+            if(!allInputsValid) {
+                return alert("الرجاء إدخال جميع القيم المطلوبة بشكل صحيح.");
+            }
+            
+            const solverFunc = eq.solvers[target];
+            if (!solverFunc) {
+                return alert(`⚠️ العذر، حل المتغير ${target} غير مدعم حالياً.`);
+            }
+            
+            const resultInBaseUnit = solverFunc(data);
+            const targetUnitFactor = parseScientific(document.getElementById(`unit-${target}`).value);
+            const finalResult = resultInBaseUnit / targetUnitFactor;
+            
+            const targetUnitSelect = document.getElementById(`unit-${target}`);
+            const targetUnitName = targetUnitSelect.options[targetUnitSelect.selectedIndex].text;
+
+            let displayResult;
+            if (isNaN(finalResult) || !isFinite(finalResult)) {
+                displayResult = "قيمة غير معرفة";
+            } else {
+                if (Math.abs(finalResult) > 1e5 || (Math.abs(finalResult) < 1e-4 && finalResult !== 0)) {
+                    displayResult = finalResult.toExponential(4);
+                } else {
+                    displayResult = finalResult.toFixed(4);
+                }
+            }
+            
+            let resultHtml = `<div class="p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-blue-300 rounded-2xl font-bold text-2xl mt-4 text-center code-font shadow-xl animate-pulse-once">Result: ${displayResult} <span class="text-sm font-normal text-slate-400 ml-2">${targetUnitName}</span></div>`;
+            
+            if (displayResult === "قيمة غير معرفة"){
+                resultHtml += `<div class="text-xs text-center text-red-500 mt-2">قد تكون المدخلات غير منطقية فيزيائياً (مثلاً، الجذر التربيعي لعدد سالب).</div>`;
+            }
+
+            document.getElementById('stepsList').innerHTML = eq.steps(target).map(s => `<div class="step-card p-4 rounded-xl shadow-sm mb-2 text-sm text-slate-600 bg-blue-50/30">${s}</div>`).join('') + resultHtml;
             
             document.getElementById('resultPanel').classList.remove('hidden');
             MathJax.typeset();
